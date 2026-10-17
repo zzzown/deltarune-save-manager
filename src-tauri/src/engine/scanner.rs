@@ -16,6 +16,24 @@ pub fn default_save_dir() -> Option<PathBuf> {
     }
 }
 
+/// 发现 %LOCALAPPDATA% 下所有 DELTARUNE* 目录（如 DELTARUNE、DELTARUNE_bak、DELTARUNE_pink）
+pub fn discover_save_dirs() -> Vec<String> {
+    let Ok(la) = std::env::var("LOCALAPPDATA") else {
+        return Vec::new();
+    };
+    let mut result = Vec::new();
+    if let Ok(entries) = std::fs::read_dir(&la) {
+        for e in entries.flatten() {
+            let name = e.file_name().to_string_lossy().to_string();
+            if name.starts_with("DELTARUNE") && e.path().is_dir() {
+                result.push(e.path().to_string_lossy().to_string());
+            }
+        }
+    }
+    result.sort();
+    result
+}
+
 /// 解析文件名 `filech{N}_{slot}[_b]`
 pub fn parse_filename(name: &str) -> Option<(u32, u32, Face)> {
     let rest = name.strip_prefix("filech")?;

@@ -7,14 +7,24 @@ use std::path::PathBuf;
 use crate::engine::types::{Face, Settings, SnapshotMeta, ScanResult};
 
 /// 默认存档目录
-fn save_dir() -> Result<PathBuf, String> {
+fn default_save_dir() -> Result<PathBuf, String> {
     crate::engine::scanner::default_save_dir().ok_or_else(|| "未找到 DELTARUNE 存档目录（%LOCALAPPDATA%\\DELTARUNE）".to_string())
 }
 
-/// 扫描存档目录
+/// 扫描存档目录（save_dir 为空则用默认目录）
 #[tauri::command]
-fn scan() -> Result<ScanResult, String> {
-    crate::engine::scanner::scan(&save_dir()?)
+fn scan(save_dir: Option<String>) -> Result<ScanResult, String> {
+    let dir = match save_dir.as_deref() {
+        Some(d) if !d.is_empty() => PathBuf::from(d),
+        _ => default_save_dir()?,
+    };
+    crate::engine::scanner::scan(&dir)
+}
+
+/// 发现所有 DELTARUNE 存档目录
+#[tauri::command]
+fn list_save_dirs() -> Vec<String> {
+    crate::engine::scanner::discover_save_dirs()
 }
 
 /// 列出所有快照
@@ -26,19 +36,25 @@ fn list_snapshots() -> Result<Vec<SnapshotMeta>, String> {
 /// 为一整个档位（槽位×面）创建快照
 #[tauri::command]
 fn create_snapshot(slot: u32, face: Face, note: String) -> Result<SnapshotMeta, String> {
-    crate::engine::snapshot::create_snapshot(&save_dir()?, slot, face, &note)
+    crate::engine::snapshot::create_snapshot(&default_save_dir()?, slot, face, &note)
 }
 
 /// 恢复快照
 #[tauri::command]
 fn restore_snapshot(id: String) -> Result<(), String> {
-    crate::engine::snapshot::restore_snapshot(&save_dir()?, &id)
+    crate::engine::snapshot::restore_snapshot(&default_save_dir()?, &id)
 }
 
 /// 删除快照（软删除，移入回收区）
 #[tauri::command]
 fn delete_snapshot(id: String) -> Result<(), String> {
     crate::engine::snapshot::delete_snapshot(&id)
+}
+
+/// 切换快照星标锁定
+#[tauri::command]
+fn toggle_lock(id: String, locked: bool) -> Result<SnapshotMeta, String> {
+    crate::engine::snapshot::toggle_lock(&id, locked)
 }
 
 /// 启动游戏
@@ -153,10 +169,12 @@ pub fn run() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             scan,
+            list_save_dirs,
             list_snapshots,
             create_snapshot,
             restore_snapshot,
             delete_snapshot,
+            toggle_lock,
             launch_game,
             get_settings,
             set_settings,

@@ -19,11 +19,13 @@ export function SnapshotTimeline({
   snapshots,
   onRestore,
   onDelete,
+  onToggleLock,
   busy,
 }: {
   snapshots: SnapshotMeta[];
   onRestore: (id: string) => void;
   onDelete: (id: string) => void;
+  onToggleLock: (id: string, locked: boolean) => void;
   busy: boolean;
 }) {
   if (snapshots.length === 0) {
@@ -36,6 +38,7 @@ export function SnapshotTimeline({
         <li key={s.id} className="snapshot">
           <div className="snapshot-main">
             <div className="snapshot-note">
+              {s.locked && <span className="lock-star">★</span>}
               {s.note || "（无备注）"}
             </div>
             <div className="snapshot-meta">
@@ -44,6 +47,14 @@ export function SnapshotTimeline({
             </div>
           </div>
           <div className="snapshot-actions">
+            <button
+              className="btn btn-small btn-lock"
+              title={s.locked ? "取消星标" : "星标锁定（不占保留配额、不自动清理）"}
+              disabled={busy}
+              onClick={() => onToggleLock(s.id, !s.locked)}
+            >
+              {s.locked ? "★" : "☆"}
+            </button>
             <button
               className="btn btn-small"
               disabled={busy}
@@ -63,12 +74,12 @@ export function SnapshotTimeline({
               className="btn btn-small btn-ghost"
               disabled={busy}
               onClick={() => {
-                if (window.confirm("删除此快照？（不可撤销）")) {
+                if (window.confirm("移入回收站？（可在回收站中找回）")) {
                   onDelete(s.id);
                 }
               }}
             >
-              删除
+              回收
             </button>
           </div>
         </li>

@@ -98,6 +98,8 @@ pub struct SnapshotMeta {
     pub note: String,
     pub file_count: usize,
     pub total_size: u64,
+    /// 星标锁定：不占保留配额、不被自动清理
+    pub locked: bool,
 }
 
 /// 应用设置

@@ -164,6 +164,7 @@ fn do_create_snapshot(
         note: note.to_string(),
         file_count: names.len(),
         total_size,
+        locked: false,
     };
     let json = serde_json::to_string_pretty(&meta).map_err(|e| e.to_string())?;
     fs::write(snap_dir.join("meta.json"), json).map_err(|e| format!("写 meta.json 失败: {e}"))?;
@@ -189,6 +190,10 @@ pub fn list_snapshots() -> Result<Vec<SnapshotMeta>, String> {
     }
     let mut result = Vec::new();
     for e in fs::read_dir(&root).map_err(|e| e.to_string())?.flatten() {
+        let name = e.file_name().to_string_lossy().to_string();
+        if name.starts_with('_') {
+            continue; // 跳过 _trash 等内部目录
+        }
         if !e.path().is_dir() {
             continue;
         }
@@ -202,14 +207,35 @@ pub fn list_snapshots() -> Result<Vec<SnapshotMeta>, String> {
     Ok(result)
 }
 
-/// 删除一个快照
+/// 删除一个快照（软删除：移入回收站 _trash）
 pub fn delete_snapshot(id: &str) -> Result<(), String> {
     let root = snapshot_root()?;
     let dir = root.join(id);
-    if dir.exists() {
-        fs::remove_dir_all(&dir).map_err(|e| format!("删除快照失败: {e}"))?;
+    if !dir.exists() {
+        return Ok(());
     }
+    let trash = root.join("_trash");
+    fs::create_dir_all(&trash).map_err(|e| e.to_string())?;
+    let target = trash.join(id);
+    if target.exists() {
+        fs::remove_dir_all(&target).map_err(|e| e.to_string())?;
+    }
+    fs::rename(&dir, &target).map_err(|e| format!("移入回收站失败: {e}"))?;
     Ok(())
+}
+
+/// 切换快照的星标锁定状态
+pub fn toggle_lock(id: &str, locked: bool) -> Result<SnapshotMeta, String> {
+    let root = snapshot_root()?;
+    let meta_path = root.join(id).join("meta.json");
+    let mut meta: SnapshotMeta = serde_json::from_slice(
+        &fs::read(&meta_path).map_err(|e| format!("读取快照元数据失败: {e}"))?,
+    )
+    .map_err(|e| e.to_string())?;
+    meta.locked = locked;
+    let json = serde_json::to_string_pretty(&meta).map_err(|e| e.to_string())?;
+    fs::write(&meta_path, json).map_err(|e| e.to_string())?;
+    Ok(meta)
 }
 
 /// 恢复快照（事务式：先备份现有文件到 _trash，再落快照文件；失败回滚）

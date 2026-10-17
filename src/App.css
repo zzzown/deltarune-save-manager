@@ -362,6 +362,36 @@ body {
   color: var(--warn);
 }
 
+/* 目录切换下拉 */
+.select {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 7px 8px;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* 星标锁定 */
+.btn-lock {
+  color: var(--accent);
+  font-size: 14px;
+  padding: 4px 9px;
+  line-height: 1;
+}
+
+.lock-star {
+  color: var(--accent);
+  margin-right: 4px;
+}
+
 /* 设置弹窗 */
 .modal-overlay {
   position: fixed;

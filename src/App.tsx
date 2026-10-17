@@ -16,11 +16,13 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [settings, setSettings] = useState<Settings | null>(null);
+  const [saveDirs, setSaveDirs] = useState<string[]>([]);
+  const [currentDir, setCurrentDir] = useState("");
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (dir?: string) => {
     try {
       const [s, snaps] = await Promise.all([
-        api.scanSaveDir(),
+        api.scanSaveDir(dir || undefined),
         api.listSnapshots(),
       ]);
       setScan(s);
@@ -32,7 +34,15 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    refresh();
+    (async () => {
+      try {
+        const dirs = await api.listSaveDirs();
+        setSaveDirs(dirs);
+      } catch (e) {
+        setError(String(e));
+      }
+      refresh();
+    })();
   }, [refresh]);
 
   const selectedProfile: Profile | undefined = scan?.profiles.find(
@@ -104,6 +114,25 @@ export default function App() {
     }
   };
 
+  const switchDir = async (dir: string) => {
+    setCurrentDir(dir);
+    await refresh(dir || undefined);
+  };
+
+  const doToggleLock = async (id: string, locked: boolean) => {
+    setBusy(true);
+    setError("");
+    try {
+      await api.toggleLock(id, locked);
+      const snaps = await api.listSnapshots();
+      setSnapshots(snaps);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="app">
       <header className="topbar">
@@ -112,10 +141,24 @@ export default function App() {
           <span>DELTARUNE 存档管理器</span>
         </div>
         <div className="topbar-right">
+          <select
+            className="select"
+            value={currentDir}
+            onChange={(e) => switchDir(e.target.value)}
+            disabled={busy}
+            title="切换存档目录"
+          >
+            <option value="">默认目录</option>
+            {saveDirs.map((d) => (
+              <option key={d} value={d}>
+                {d.split(/[\\/]/).pop()}
+              </option>
+            ))}
+          </select>
           {scan?.gameRunning && (
             <span className="tag tag-danger">游戏运行中 · 已锁定写入</span>
           )}
-          <button className="btn" onClick={refresh} disabled={busy}>
+          <button className="btn" onClick={() => refresh()} disabled={busy}>
             刷新
           </button>
           <button className="btn" onClick={doLaunch} disabled={busy}>
@@ -198,6 +241,7 @@ export default function App() {
                   await api.deleteSnapshot(id);
                   await refresh();
                 }}
+                onToggleLock={doToggleLock}
                 busy={busy}
               />
             </>

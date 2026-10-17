@@ -74,6 +74,8 @@ export interface SnapshotMeta {
   note: string;
   fileCount: number;
   totalSize: number;
+  /** 星标锁定：不占保留配额、不被自动清理 */
+  locked: boolean;
 }
 
 /** 应用设置 */
