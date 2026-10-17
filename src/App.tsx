@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import * as api from "./api";
-import type { Profile, ScanResult, SnapshotMeta } from "./types";
+import type { Profile, ScanResult, Settings, SnapshotMeta } from "./types";
 import { SlotCard } from "./components/SlotCard";
 import { SnapshotTimeline } from "./components/SnapshotTimeline";
+import { SettingsPanel } from "./components/SettingsPanel";
 
 export default function App() {
   const [scan, setScan] = useState<ScanResult | null>(null);
@@ -13,6 +14,8 @@ export default function App() {
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [settings, setSettings] = useState<Settings | null>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -77,6 +80,30 @@ export default function App() {
     }
   };
 
+  const openSettings = async () => {
+    try {
+      const s = await api.getSettings();
+      setSettings(s);
+      setShowSettings(true);
+    } catch (e) {
+      setError(String(e));
+    }
+  };
+
+  const saveSettings = async (s: Settings) => {
+    setBusy(true);
+    setError("");
+    try {
+      await api.setSettings(s);
+      setShowSettings(false);
+      setSettings(null);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="app">
       <header className="topbar">
@@ -93,6 +120,9 @@ export default function App() {
           </button>
           <button className="btn" onClick={doLaunch} disabled={busy}>
             启动游戏
+          </button>
+          <button className="btn" onClick={openSettings} disabled={busy}>
+            设置
           </button>
         </div>
       </header>
@@ -176,6 +206,15 @@ export default function App() {
           )}
         </aside>
       </main>
+
+      {showSettings && settings && (
+        <SettingsPanel
+          initial={settings}
+          onSave={saveSettings}
+          onClose={() => setShowSettings(false)}
+          onDetect={api.detectGamePath}
+        />
+      )}
     </div>
   );
 }

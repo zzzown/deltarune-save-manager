@@ -5,12 +5,18 @@ use std::path::{Path, PathBuf};
 
 use crate::engine::types::{Face, SnapshotMeta};
 
-/// 快照库根目录：%APPDATA%\DeltaruneSaveManager\snapshots
+/// 快照库根目录：优先读取设置中的自定义目录，否则 %APPDATA%\DeltaruneSaveManager\snapshots
 fn snapshot_root() -> Result<PathBuf, String> {
     let appdata = std::env::var("APPDATA").map_err(|_| "无法获取 APPDATA 目录".to_string())?;
-    Ok(PathBuf::from(appdata)
-        .join("DeltaruneSaveManager")
-        .join("snapshots"))
+    let base = PathBuf::from(&appdata).join("DeltaruneSaveManager");
+    if let Ok(bytes) = fs::read(base.join("settings.json")) {
+        if let Ok(s) = serde_json::from_slice::<crate::engine::types::Settings>(&bytes) {
+            if !s.snapshot_dir.is_empty() {
+                return Ok(PathBuf::from(s.snapshot_dir));
+            }
+        }
+    }
+    Ok(base.join("snapshots"))
 }
 
 /// 收集该槽位×面的相关文件名（常规槽 slot + completion 槽 slot+3）

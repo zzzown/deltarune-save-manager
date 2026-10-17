@@ -361,3 +361,65 @@ body {
 .warn-text {
   color: var(--warn);
 }
+
+/* 设置弹窗 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-hover);
+  border-radius: 12px;
+  padding: 20px 22px;
+  width: 480px;
+  max-width: 90vw;
+}
+
+.modal-title {
+  margin: 0 0 16px;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+.field {
+  margin-bottom: 14px;
+}
+
+.field label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+
+.field-row {
+  display: flex;
+  gap: 8px;
+}
+
+.field-row .input {
+  flex: 1;
+}
+
+.field .hint {
+  display: block;
+  margin-top: 4px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}

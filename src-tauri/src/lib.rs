@@ -48,7 +48,7 @@ fn launch_game() -> Result<(), String> {
     let path = if !settings.game_path.is_empty() {
         settings.game_path
     } else {
-        detect_game_path().ok_or_else(|| {
+        find_game_path().ok_or_else(|| {
             "未配置游戏路径，请在设置中填写 DELTARUNE.exe 的完整路径。".to_string()
         })?
     };
@@ -92,8 +92,14 @@ fn load_settings() -> Settings {
     Settings::default()
 }
 
-/// 探测常见 Steam 安装路径下的 DELTARUNE.exe
+/// 自动探测游戏 exe 路径（暴露给前端）
+#[tauri::command]
 fn detect_game_path() -> Option<String> {
+    find_game_path()
+}
+
+/// 探测常见 Steam 安装路径下的 DELTARUNE.exe
+fn find_game_path() -> Option<String> {
     const CANDIDATES: [&str; 6] = [
         r"C:\Program Files (x86)\Steam\steamapps\common\DELTARUNE\DELTARUNE.exe",
         r"C:\Program Files\Steam\steamapps\common\DELTARUNE\DELTARUNE.exe",
@@ -119,6 +125,7 @@ pub fn run() {
             launch_game,
             get_settings,
             set_settings,
+            detect_game_path,
         ])
         .run(tauri::generate_context!())
         .expect("运行 DELTARUNE 存档管理器时出错");

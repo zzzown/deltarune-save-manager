@@ -48,3 +48,8 @@ export async function getSettings(): Promise<Settings> {
 export async function setSettings(s: Settings): Promise<void> {
   return invoke<void>("set_settings", { settings: s });
 }
+
+/** 自动探测游戏 exe 路径 */
+export async function detectGamePath(): Promise<string | null> {
+  return invoke<string | null>("detect_game_path");
+}
