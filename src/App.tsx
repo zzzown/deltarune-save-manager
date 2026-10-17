@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import * as api from "./api";
 import type { Profile, ScanResult, Settings, SnapshotMeta } from "./types";
 import { SlotCard } from "./components/SlotCard";
@@ -18,11 +18,14 @@ export default function App() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [saveDirs, setSaveDirs] = useState<string[]>([]);
   const [currentDir, setCurrentDir] = useState("");
+  const currentDirRef = useRef("");
+  const [trash, setTrash] = useState<SnapshotMeta[]>([]);
+  const [view, setView] = useState<"snapshots" | "trash">("snapshots");
 
-  const refresh = useCallback(async (dir?: string) => {
+  const refresh = useCallback(async () => {
     try {
       const [s, snaps] = await Promise.all([
-        api.scanSaveDir(dir || undefined),
+        api.scanSaveDir(currentDirRef.current || undefined),
         api.listSnapshots(),
       ]);
       setScan(s);
@@ -36,8 +39,15 @@ export default function App() {
   useEffect(() => {
     (async () => {
       try {
+        const s = await api.getSettings();
+        setSettings(s);
+        document.documentElement.setAttribute(
+          "data-theme",
+          s.theme || "green-white"
+        );
         const dirs = await api.listSaveDirs();
-        setSaveDirs(dirs);
+        const merged = [...new Set([...dirs, ...(s.customDirs || [])])];
+        setSaveDirs(merged);
       } catch (e) {
         setError(String(e));
       }
@@ -105,8 +115,15 @@ export default function App() {
     setError("");
     try {
       await api.setSettings(s);
+      setSettings(s);
+      document.documentElement.setAttribute(
+        "data-theme",
+        s.theme || "green-white"
+      );
+      const dirs = await api.listSaveDirs();
+      const merged = [...new Set([...dirs, ...(s.customDirs || [])])];
+      setSaveDirs(merged);
       setShowSettings(false);
-      setSettings(null);
     } catch (e) {
       setError(String(e));
     } finally {
@@ -115,8 +132,9 @@ export default function App() {
   };
 
   const switchDir = async (dir: string) => {
+    currentDirRef.current = dir;
     setCurrentDir(dir);
-    await refresh(dir || undefined);
+    await refresh();
   };
 
   const doToggleLock = async (id: string, locked: boolean) => {
@@ -130,6 +148,49 @@ export default function App() {
       setError(String(e));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const loadTrash = async () => {
+    try {
+      const t = await api.listTrash();
+      setTrash(t);
+    } catch (e) {
+      setError(String(e));
+    }
+  };
+
+  const doRestoreTrash = async (id: string) => {
+    setBusy(true);
+    try {
+      await api.restoreTrash(id);
+      await loadTrash();
+      await refresh();
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const doPurgeTrash = async (id: string) => {
+    setBusy(true);
+    try {
+      await api.purgeTrash(id);
+      await loadTrash();
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const toggleView = async () => {
+    if (view === "snapshots") {
+      await loadTrash();
+      setView("trash");
+    } else {
+      setView("snapshots");
     }
   };
 
@@ -208,45 +269,92 @@ export default function App() {
 
         <aside className="side">
           <div className="section-title">
-            <h2>快照</h2>
-            {selectedProfile && (
+            <h2>{view === "snapshots" ? "快照" : "回收站"}</h2>
+            {view === "snapshots" && selectedProfile && (
               <span className="hint">
                 槽位 {selectedProfile.slot + 1} ·{" "}
                 {selectedProfile.face === "B" ? "B 面" : "正篇"}
               </span>
             )}
+            <button
+              className="btn btn-small btn-ghost"
+              style={{ marginLeft: "auto" }}
+              onClick={toggleView}
+            >
+              {view === "snapshots" ? "回收站" : "返回快照"}
+            </button>
           </div>
 
-          {selected ? (
-            <>
-              <div className="snapshot-bar">
-                <input
-                  className="input"
-                  placeholder="备注（可选）"
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
+          {view === "snapshots" ? (
+            selected ? (
+              <>
+                <div className="snapshot-bar">
+                  <input
+                    className="input"
+                    placeholder="备注（可选）"
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                  />
+                  <button
+                    className="btn btn-primary"
+                    onClick={doCreateSnapshot}
+                    disabled={busy}
+                  >
+                    创建快照
+                  </button>
+                </div>
+                <SnapshotTimeline
+                  snapshots={selectedSnapshots}
+                  onRestore={doRestore}
+                  onDelete={async (id) => {
+                    await api.deleteSnapshot(id);
+                    await refresh();
+                  }}
+                  onToggleLock={doToggleLock}
+                  busy={busy}
                 />
-                <button
-                  className="btn btn-primary"
-                  onClick={doCreateSnapshot}
-                  disabled={busy}
-                >
-                  创建快照
-                </button>
-              </div>
-              <SnapshotTimeline
-                snapshots={selectedSnapshots}
-                onRestore={doRestore}
-                onDelete={async (id) => {
-                  await api.deleteSnapshot(id);
-                  await refresh();
-                }}
-                onToggleLock={doToggleLock}
-                busy={busy}
-              />
-            </>
+              </>
+            ) : (
+              <div className="empty">选择一个档位查看其快照。</div>
+            )
+          ) : trash.length === 0 ? (
+            <div className="empty">回收站是空的。</div>
           ) : (
-            <div className="empty">选择一个档位查看其快照。</div>
+            <ul className="timeline">
+              {trash.map((t) => (
+                <li className="snapshot" key={t.id}>
+                  <div className="snapshot-main">
+                    <div className="snapshot-note">
+                      {t.note || "（无备注）"}
+                    </div>
+                    <div className="snapshot-meta">
+                      槽位 {t.slot + 1} · {t.face === "B" ? "B 面" : "正篇"} ·{" "}
+                      {new Date(t.createdAt).toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="snapshot-actions">
+                    <button
+                      className="btn btn-small"
+                      disabled={busy}
+                      onClick={() => doRestoreTrash(t.id)}
+                    >
+                      恢复
+                    </button>
+                    <button
+                      className="btn btn-small btn-ghost"
+                      disabled={busy}
+                      onClick={() => {
+                        if (window.confirm("彻底删除？此操作不可撤销")) {
+                          doPurgeTrash(t.id);
+                        }
+                      }}
+                    >
+                      彻底删除
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
           )}
         </aside>
       </main>

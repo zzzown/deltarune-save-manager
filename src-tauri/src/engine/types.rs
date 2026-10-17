@@ -108,6 +108,12 @@ pub struct SnapshotMeta {
 pub struct Settings {
     pub game_path: String,
     pub snapshot_dir: String,
+    /// 主题："green-white" / "dark-yellow"
+    pub theme: String,
+    /// 启动方式："direct" / "steam"
+    pub launch_method: String,
+    /// 自定义存档目录
+    pub custom_dirs: Vec<String>,
 }
 
 impl Default for Settings {
@@ -115,6 +121,9 @@ impl Default for Settings {
         Settings {
             game_path: String::new(),
             snapshot_dir: String::new(),
+            theme: "green-white".into(),
+            launch_method: "direct".into(),
+            custom_dirs: Vec::new(),
         }
     }
 }

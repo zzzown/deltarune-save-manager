@@ -238,6 +238,53 @@ pub fn toggle_lock(id: &str, locked: bool) -> Result<SnapshotMeta, String> {
     Ok(meta)
 }
 
+/// 列出回收站中的快照
+pub fn list_trash() -> Result<Vec<SnapshotMeta>, String> {
+    let root = snapshot_root()?;
+    let trash = root.join("_trash");
+    if !trash.exists() {
+        return Ok(Vec::new());
+    }
+    let mut result = Vec::new();
+    for e in fs::read_dir(&trash).map_err(|e| e.to_string())?.flatten() {
+        if !e.path().is_dir() {
+            continue;
+        }
+        if let Ok(bytes) = fs::read(e.path().join("meta.json")) {
+            if let Ok(meta) = serde_json::from_slice::<SnapshotMeta>(&bytes) {
+                result.push(meta);
+            }
+        }
+    }
+    result.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+    Ok(result)
+}
+
+/// 从回收站恢复快照
+pub fn restore_trash(id: &str) -> Result<(), String> {
+    let root = snapshot_root()?;
+    let src = root.join("_trash").join(id);
+    if !src.exists() {
+        return Err(format!("回收站中不存在快照 {id}"));
+    }
+    let dst = root.join(id);
+    if dst.exists() {
+        return Err("同名快照已存在，无法恢复".to_string());
+    }
+    fs::rename(&src, &dst).map_err(|e| format!("恢复失败: {e}"))?;
+    Ok(())
+}
+
+/// 彻底删除回收站中的快照
+pub fn purge_trash(id: &str) -> Result<(), String> {
+    let root = snapshot_root()?;
+    let src = root.join("_trash").join(id);
+    if src.exists() {
+        fs::remove_dir_all(&src).map_err(|e| format!("彻底删除失败: {e}"))?;
+    }
+    Ok(())
+}
+
 /// 恢复快照（事务式：先备份现有文件到 _trash，再落快照文件；失败回滚）
 pub fn restore_snapshot(save_dir: &Path, id: &str) -> Result<(), String> {
     // 游戏运行中禁止恢复

@@ -84,4 +84,10 @@ export interface Settings {
   gamePath: string;
   /** 快照库根目录 */
   snapshotDir: string;
+  /** 主题 */
+  theme: string;
+  /** 启动方式：direct / steam */
+  launchMethod: string;
+  /** 自定义存档目录 */
+  customDirs: string[];
 }

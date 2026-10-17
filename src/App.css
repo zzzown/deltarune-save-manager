@@ -1,4 +1,20 @@
 :root {
+  --bg: #eef2ee;
+  --bg-panel: #ffffff;
+  --bg-card: #ffffff;
+  --border: #cdd5cd;
+  --border-hover: #9fb09f;
+  --text: #182418;
+  --text-dim: #5f6b5f;
+  --accent: #2e8b57; /* 绿 */
+  --accent-dim: #1e6b42;
+  --danger: #d64545;
+  --warn: #b9740f;
+  --ok: #3a9d5d;
+  --mono: "Courier New", "Consolas", ui-monospace, monospace;
+}
+
+[data-theme="dark-yellow"] {
   --bg: #0a0a0a;
   --bg-panel: #141414;
   --bg-card: #1b1b1b;
@@ -11,7 +27,6 @@
   --danger: #e24b4a;
   --warn: #ef9f27;
   --ok: #63c96b;
-  --mono: "Courier New", "Consolas", ui-monospace, monospace;
 }
 
 * {

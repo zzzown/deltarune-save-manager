@@ -44,6 +44,21 @@ export async function toggleLock(id: string, locked: boolean): Promise<void> {
   return invoke<void>("toggle_lock", { id, locked });
 }
 
+/** 列出回收站快照 */
+export async function listTrash(): Promise<SnapshotMeta[]> {
+  return invoke<SnapshotMeta[]>("list_trash");
+}
+
+/** 从回收站恢复快照 */
+export async function restoreTrash(id: string): Promise<void> {
+  return invoke<void>("restore_trash", { id });
+}
+
+/** 彻底删除回收站快照 */
+export async function purgeTrash(id: string): Promise<void> {
+  return invoke<void>("purge_trash", { id });
+}
+
 /** 启动游戏 */
 export async function launchGame(): Promise<void> {
   return invoke<void>("launch_game");

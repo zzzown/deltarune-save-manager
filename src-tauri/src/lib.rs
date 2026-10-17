@@ -57,10 +57,36 @@ fn toggle_lock(id: String, locked: bool) -> Result<SnapshotMeta, String> {
     crate::engine::snapshot::toggle_lock(&id, locked)
 }
 
+/// 列出回收站快照
+#[tauri::command]
+fn list_trash() -> Result<Vec<SnapshotMeta>, String> {
+    crate::engine::snapshot::list_trash()
+}
+
+/// 从回收站恢复快照
+#[tauri::command]
+fn restore_trash(id: String) -> Result<(), String> {
+    crate::engine::snapshot::restore_trash(&id)
+}
+
+/// 彻底删除回收站快照
+#[tauri::command]
+fn purge_trash(id: String) -> Result<(), String> {
+    crate::engine::snapshot::purge_trash(&id)
+}
+
 /// 启动游戏
 #[tauri::command]
 fn launch_game() -> Result<(), String> {
     let settings = load_settings();
+    if settings.launch_method == "steam" {
+        // 通过 Steam 启动（AppID 1671210 为 Deltarune 正式版）
+        let _ = std::process::Command::new("cmd")
+            .args(["/C", "start", "", "steam://rungameid/1671210"])
+            .spawn()
+            .map_err(|e| format!("通过 Steam 启动失败: {e}"))?;
+        return Ok(());
+    }
     let path = if !settings.game_path.is_empty() {
         settings.game_path
     } else {
@@ -167,6 +193,7 @@ fn reg_steam_install_path() -> Option<String> {
 
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             scan,
             list_save_dirs,
@@ -175,6 +202,9 @@ pub fn run() {
             restore_snapshot,
             delete_snapshot,
             toggle_lock,
+            list_trash,
+            restore_trash,
+            purge_trash,
             launch_game,
             get_settings,
             set_settings,
