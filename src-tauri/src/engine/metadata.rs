@@ -16,15 +16,17 @@
 use std::collections::HashMap;
 use std::path::Path;
 
-use crate::core::types::SlotMeta;
+use crate::engine::types::SlotMeta;
 
 /// dr.ini 解析结果
 pub struct DrIni {
     /// (chapter, slot) → 元数据
     pub slots: HashMap<(u32, u32), SlotMeta>,
     /// 隐藏 Boss 表：(chapter, slot) → 值
+    #[allow(dead_code)]
     pub ura: HashMap<(u32, u32), f64>,
     /// 物品标记表：(chapter, slot, idx) → 值
+    #[allow(dead_code)]
     pub f_items: HashMap<(u32, u32, u32), f64>,
 }
 

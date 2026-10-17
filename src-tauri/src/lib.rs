@@ -1,44 +1,44 @@
 //! DELTARUNE 外置存档管理器 —— Tauri 应用入口与命令注册
 
-mod core;
+mod engine;
 
 use std::path::PathBuf;
 
-use core::types::{Face, Settings, SnapshotMeta, ScanResult};
+use crate::engine::types::{Face, Settings, SnapshotMeta, ScanResult};
 
 /// 默认存档目录
 fn save_dir() -> Result<PathBuf, String> {
-    core::scanner::default_save_dir().ok_or_else(|| "未找到 DELTARUNE 存档目录（%LOCALAPPDATA%\\DELTARUNE）".to_string())
+    crate::engine::scanner::default_save_dir().ok_or_else(|| "未找到 DELTARUNE 存档目录（%LOCALAPPDATA%\\DELTARUNE）".to_string())
 }
 
 /// 扫描存档目录
 #[tauri::command]
 fn scan() -> Result<ScanResult, String> {
-    core::scanner::scan(&save_dir()?)
+    crate::engine::scanner::scan(&save_dir()?)
 }
 
 /// 列出所有快照
 #[tauri::command]
 fn list_snapshots() -> Result<Vec<SnapshotMeta>, String> {
-    core::snapshot::list_snapshots()
+    crate::engine::snapshot::list_snapshots()
 }
 
 /// 为一整个档位（槽位×面）创建快照
 #[tauri::command]
 fn create_snapshot(slot: u32, face: Face, note: String) -> Result<SnapshotMeta, String> {
-    core::snapshot::create_snapshot(&save_dir()?, slot, face, &note)
+    crate::engine::snapshot::create_snapshot(&save_dir()?, slot, face, &note)
 }
 
 /// 恢复快照
 #[tauri::command]
 fn restore_snapshot(id: String) -> Result<(), String> {
-    core::snapshot::restore_snapshot(&save_dir()?, &id)
+    crate::engine::snapshot::restore_snapshot(&save_dir()?, &id)
 }
 
 /// 删除快照（软删除，移入回收区）
 #[tauri::command]
 fn delete_snapshot(id: String) -> Result<(), String> {
-    core::snapshot::delete_snapshot(&id)
+    crate::engine::snapshot::delete_snapshot(&id)
 }
 
 /// 启动游戏

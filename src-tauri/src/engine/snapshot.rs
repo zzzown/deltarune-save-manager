@@ -1,10 +1,9 @@
 //! 快照：创建、恢复、列表、删除（整档 = 槽位×面的全章节文件 + dr.ini 相关段）
 
-use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::core::types::{Face, SnapshotMeta};
+use crate::engine::types::{Face, SnapshotMeta};
 
 /// 快照库根目录：%APPDATA%\DeltaruneSaveManager\snapshots
 fn snapshot_root() -> Result<PathBuf, String> {
@@ -20,7 +19,7 @@ fn collect_slot_filenames(save_dir: &Path, slot: u32, face: Face) -> Vec<String>
     if let Ok(entries) = fs::read_dir(save_dir) {
         for e in entries.flatten() {
             let name = e.file_name().to_string_lossy().to_string();
-            if let Some((_ch, s, f)) = crate::core::scanner::parse_filename(&name) {
+            if let Some((_ch, s, f)) = crate::engine::scanner::parse_filename(&name) {
                 if f == face && (s == slot || s == slot + 3) {
                     names.push(name);
                 }
@@ -94,7 +93,7 @@ fn merge_dr_sections(current: &str, incoming: &str) -> String {
     let inc = parse_sections(incoming);
 
     for (name, body) in cur.iter_mut() {
-        if let Some((_, nb)) = inc.iter().find(|(n, _)| n == name) {
+        if let Some((_, nb)) = inc.iter().find(|(n, _)| n.as_str() == name.as_str()) {
             *body = nb.clone();
         }
     }
@@ -210,7 +209,7 @@ pub fn delete_snapshot(id: &str) -> Result<(), String> {
 /// 恢复快照（事务式：先备份现有文件到 _trash，再落快照文件；失败回滚）
 pub fn restore_snapshot(save_dir: &Path, id: &str) -> Result<(), String> {
     // 游戏运行中禁止恢复
-    if crate::core::guard::is_game_running() {
+    if crate::engine::guard::is_game_running() {
         return Err("游戏正在运行，已禁止写入存档。请先退出游戏。".to_string());
     }
 
@@ -279,7 +278,7 @@ pub fn restore_snapshot(save_dir: &Path, id: &str) -> Result<(), String> {
         if let Ok(cur_bytes) = fs::read(&dr_path) {
             let current = String::from_utf8_lossy(&cur_bytes).to_string();
             let merged = merge_dr_sections(&current, &incoming);
-            if let Err(e) = crate::core::guard::atomic_write(&dr_path, merged.as_bytes()) {
+            if let Err(e) = crate::engine::guard::atomic_write(&dr_path, merged.as_bytes()) {
                 return Err(format!("合并 dr.ini 失败: {e}"));
             }
         }
@@ -290,22 +289,3 @@ pub fn restore_snapshot(save_dir: &Path, id: &str) -> Result<(), String> {
 
     Ok(())
 }
-
-/// 收集一个快照内所有文件的 sha256 清单（供校验，可选）
-#[allow(dead_code)]
-fn snapshot_fingerprints(snap_dir: &Path) -> Vec<String> {
-    let files_dir = snap_dir.join("files");
-    let mut out = Vec::new();
-    if let Ok(entries) = fs::read_dir(files_dir) {
-        for e in entries.flatten() {
-            if let Ok(fp) = crate::core::guard::fingerprint(&e.path()) {
-                out.push(fp);
-            }
-        }
-    }
-    out.sort();
-    out
-}
-
-#[allow(dead_code)]
-fn _unused(_s: &HashSet<String>) {}

@@ -10,6 +10,7 @@ pub enum Face {
 }
 
 impl Face {
+    #[allow(dead_code)]
     pub fn label(&self) -> &'static str {
         match self {
             Face::A => "正篇",
@@ -55,6 +56,7 @@ pub struct SaveFile {
 pub enum Health {
     Ok,
     Warn,
+    #[allow(dead_code)]
     Broken,
 }
 

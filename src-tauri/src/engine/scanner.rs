@@ -2,8 +2,8 @@
 
 use std::path::{Path, PathBuf};
 
-use crate::core::metadata::{parse_dr_ini, DrIni};
-use crate::core::types::{Face, Health, Profile, SaveFile, ScanResult};
+use crate::engine::metadata::{parse_dr_ini, DrIni};
+use crate::engine::types::{Face, Health, Profile, SaveFile, ScanResult};
 
 /// 默认存档目录：%LOCALAPPDATA%\DELTARUNE
 pub fn default_save_dir() -> Option<PathBuf> {
@@ -80,7 +80,7 @@ pub fn scan(save_dir: &Path) -> Result<ScanResult, String> {
         profiles,
         files,
         other_files,
-        game_running: crate::core::guard::is_game_running(),
+        game_running: crate::engine::guard::is_game_running(),
     })
 }
 
@@ -113,7 +113,7 @@ fn build_profiles(files: &[SaveFile], dr_ini: &DrIni) -> Vec<Profile> {
             }
 
             // 从 dr.ini 取该档位（常规槽 + completion 槽）的所有元数据，按章节排序
-            let mut metas: Vec<&crate::core::types::SlotMeta> = dr_ini
+            let mut metas: Vec<&crate::engine::types::SlotMeta> = dr_ini
                 .slots
                 .iter()
                 .filter(|((_ch, s), _)| *s == slot || *s == comp_slot)

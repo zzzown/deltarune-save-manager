@@ -17,11 +17,13 @@ pub fn is_game_running() -> bool {
     }
 }
 
+#[allow(dead_code)]
 fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
 /// 完整性指纹：sha256 + 行数 + 首 16 行 + 末 3 行
+#[allow(dead_code)]
 pub fn fingerprint(path: &Path) -> Result<String, String> {
     let bytes = std::fs::read(path).map_err(|e| e.to_string())?;
     let mut hasher = Sha256::new();
