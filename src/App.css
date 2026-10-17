@@ -1,16 +1,19 @@
 :root {
-  --bg: #eef2ee;
+  --bg: #eef5ef;
   --bg-panel: #ffffff;
   --bg-card: #ffffff;
-  --border: #cdd5cd;
-  --border-hover: #9fb09f;
-  --text: #182418;
-  --text-dim: #5f6b5f;
-  --accent: #2e8b57; /* 绿 */
-  --accent-dim: #1e6b42;
+  --border: #cfe0d2;
+  --border-hover: #a8c4ad;
+  --text: #1a2e1a;
+  --text-dim: #5a6e5a;
+  --accent: #3da35d; /* 亮绿 */
+  --accent-dim: #2d7d47;
+  --on-accent: #ffffff; /* accent 上的文字色 */
   --danger: #d64545;
   --warn: #b9740f;
   --ok: #3a9d5d;
+  --chip-has-bg: #dcece0;
+  --chip-has-border: #a9c9b0;
   --mono: "Courier New", "Consolas", ui-monospace, monospace;
 }
 
@@ -24,9 +27,12 @@
   --text-dim: #9a9a9a;
   --accent: #ffd31c; /* Deltarune 存档点黄 */
   --accent-dim: #a08a10;
+  --on-accent: #000000;
   --danger: #e24b4a;
   --warn: #ef9f27;
   --ok: #63c96b;
+  --chip-has-bg: #262626;
+  --chip-has-border: #4a4a4a;
 }
 
 * {
@@ -187,14 +193,14 @@ body {
 }
 
 .chip-has {
-  border-color: #4a4a4a;
+  border-color: var(--chip-has-border);
   color: var(--text);
-  background: #262626;
+  background: var(--chip-has-bg);
 }
 
 .chip-done {
   border-color: var(--accent-dim);
-  color: #000;
+  color: var(--on-accent);
   background: var(--accent);
   font-weight: 600;
 }
@@ -223,7 +229,7 @@ body {
 }
 
 .tag-b {
-  color: #000;
+  color: var(--on-accent);
   background: var(--accent);
   border-color: var(--accent);
   font-weight: 600;
@@ -299,7 +305,7 @@ body {
 .btn-primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #000;
+  color: var(--on-accent);
   font-weight: 600;
 }
 
@@ -467,4 +473,21 @@ body {
   justify-content: flex-end;
   gap: 8px;
   margin-top: 18px;
+}
+
+.modal-sm {
+  width: 380px;
+}
+
+.confirm-msg {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.btn-danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+  font-weight: 600;
 }

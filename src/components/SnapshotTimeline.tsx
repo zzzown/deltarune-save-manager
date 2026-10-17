@@ -58,26 +58,14 @@ export function SnapshotTimeline({
             <button
               className="btn btn-small"
               disabled={busy}
-              onClick={() => {
-                if (
-                  window.confirm(
-                    "确定恢复此快照吗？恢复前会自动为当前存档再建一份快照。"
-                  )
-                ) {
-                  onRestore(s.id);
-                }
-              }}
+              onClick={() => onRestore(s.id)}
             >
               恢复
             </button>
             <button
               className="btn btn-small btn-ghost"
               disabled={busy}
-              onClick={() => {
-                if (window.confirm("移入回收站？（可在回收站中找回）")) {
-                  onDelete(s.id);
-                }
-              }}
+              onClick={() => onDelete(s.id)}
             >
               回收
             </button>

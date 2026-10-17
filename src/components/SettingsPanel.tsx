@@ -56,7 +56,7 @@ export function SettingsPanel({
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay">
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <h2 className="modal-title">
           <span className="brand-star">*</span> 设置

@@ -4,6 +4,7 @@ import type { Profile, ScanResult, Settings, SnapshotMeta } from "./types";
 import { SlotCard } from "./components/SlotCard";
 import { SnapshotTimeline } from "./components/SnapshotTimeline";
 import { SettingsPanel } from "./components/SettingsPanel";
+import { ConfirmDialog } from "./components/ConfirmDialog";
 
 export default function App() {
   const [scan, setScan] = useState<ScanResult | null>(null);
@@ -21,6 +22,12 @@ export default function App() {
   const currentDirRef = useRef("");
   const [trash, setTrash] = useState<SnapshotMeta[]>([]);
   const [view, setView] = useState<"snapshots" | "trash">("snapshots");
+  const [confirm, setConfirm] = useState<{
+    message: string;
+    confirmText?: string;
+    danger?: boolean;
+    action: () => void;
+  } | null>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -194,6 +201,14 @@ export default function App() {
     }
   };
 
+  const askConfirm = (
+    message: string,
+    action: () => void,
+    opts?: { confirmText?: string; danger?: boolean }
+  ) => {
+    setConfirm({ message, action, ...opts });
+  };
+
   return (
     <div className="app">
       <header className="topbar">
@@ -305,11 +320,18 @@ export default function App() {
                 </div>
                 <SnapshotTimeline
                   snapshots={selectedSnapshots}
-                  onRestore={doRestore}
-                  onDelete={async (id) => {
-                    await api.deleteSnapshot(id);
-                    await refresh();
-                  }}
+                  onRestore={(id) =>
+                    askConfirm(
+                      "确定恢复此快照吗？恢复前会自动备份当前存档。",
+                      () => doRestore(id)
+                    )
+                  }
+                  onDelete={(id) =>
+                    askConfirm("移入回收站？（可在回收站中找回）", async () => {
+                      await api.deleteSnapshot(id);
+                      await refresh();
+                    })
+                  }
                   onToggleLock={doToggleLock}
                   busy={busy}
                 />
@@ -343,11 +365,13 @@ export default function App() {
                     <button
                       className="btn btn-small btn-ghost"
                       disabled={busy}
-                      onClick={() => {
-                        if (window.confirm("彻底删除？此操作不可撤销")) {
-                          doPurgeTrash(t.id);
-                        }
-                      }}
+                      onClick={() =>
+                        askConfirm(
+                          "彻底删除？此操作不可撤销。",
+                          () => doPurgeTrash(t.id),
+                          { danger: true, confirmText: "彻底删除" }
+                        )
+                      }
                     >
                       彻底删除
                     </button>
@@ -365,6 +389,19 @@ export default function App() {
           onSave={saveSettings}
           onClose={() => setShowSettings(false)}
           onDetect={api.detectGamePath}
+        />
+      )}
+
+      {confirm && (
+        <ConfirmDialog
+          message={confirm.message}
+          confirmText={confirm.confirmText}
+          danger={confirm.danger}
+          onConfirm={() => {
+            confirm.action();
+            setConfirm(null);
+          }}
+          onCancel={() => setConfirm(null)}
         />
       )}
     </div>
