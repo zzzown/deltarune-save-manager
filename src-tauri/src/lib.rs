@@ -98,20 +98,55 @@ fn detect_game_path() -> Option<String> {
     find_game_path()
 }
 
-/// 探测常见 Steam 安装路径下的 DELTARUNE.exe
-fn find_game_path() -> Option<String> {
-    const CANDIDATES: [&str; 6] = [
-        r"C:\Program Files (x86)\Steam\steamapps\common\DELTARUNE\DELTARUNE.exe",
-        r"C:\Program Files\Steam\steamapps\common\DELTARUNE\DELTARUNE.exe",
-        r"D:\Steam\steamapps\common\DELTARUNE\DELTARUNE.exe",
-        r"D:\SteamLibrary\steamapps\common\DELTARUNE\DELTARUNE.exe",
-        r"E:\Steam\steamapps\common\DELTARUNE\DELTARUNE.exe",
-        r"E:\SteamLibrary\steamapps\common\DELTARUNE\DELTARUNE.exe",
+/// 探测本机 DELTARUNE.exe：Steam 默认路径 → 注册表 Steam 目录 → 手动放置的常见位置
+pub fn find_game_path() -> Option<String> {
+    let mut candidates: Vec<String> = vec![
+        r"C:\Program Files (x86)\Steam\steamapps\common\DELTARUNE\DELTARUNE.exe".into(),
+        r"C:\Program Files\Steam\steamapps\common\DELTARUNE\DELTARUNE.exe".into(),
+        r"D:\Program Files (x86)\Steam\steamapps\common\DELTARUNE\DELTARUNE.exe".into(),
+        r"D:\Steam\steamapps\common\DELTARUNE\DELTARUNE.exe".into(),
+        r"D:\SteamLibrary\steamapps\common\DELTARUNE\DELTARUNE.exe".into(),
+        r"E:\Steam\steamapps\common\DELTARUNE\DELTARUNE.exe".into(),
+        r"E:\SteamLibrary\steamapps\common\DELTARUNE\DELTARUNE.exe".into(),
     ];
-    CANDIDATES
-        .iter()
+
+    if let Some(steam) = reg_steam_install_path() {
+        candidates.push(format!(
+            "{steam}\\steamapps\\common\\DELTARUNE\\DELTARUNE.exe"
+        ));
+    }
+
+    // 手动放置的常见位置（Saved Games / Games，各盘符）
+    for drive in ['C', 'D', 'E', 'F', 'G'] {
+        candidates.push(format!("{drive}:\\Saved Games\\DELTARUNE\\DELTARUNE.exe"));
+        candidates.push(format!("{drive}:\\Games\\DELTARUNE\\DELTARUNE.exe"));
+    }
+
+    candidates
+        .into_iter()
         .find(|p| std::path::Path::new(p).exists())
-        .map(|s| s.to_string())
+}
+
+/// 通过注册表查询 Steam 安装目录
+fn reg_steam_install_path() -> Option<String> {
+    let out = std::process::Command::new("reg")
+        .args([
+            "query",
+            r"HKLM\SOFTWARE\WOW6432Node\Valve\Steam",
+            "/v",
+            "InstallPath",
+        ])
+        .output()
+        .ok()?;
+    let s = String::from_utf8_lossy(&out.stdout);
+    let marker = "REG_SZ";
+    let idx = s.rfind(marker)?;
+    let val = s[idx + marker.len()..].trim();
+    if val.is_empty() {
+        None
+    } else {
+        Some(val.to_string())
+    }
 }
 
 pub fn run() {
