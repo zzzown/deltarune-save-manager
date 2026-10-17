@@ -1,6 +1,6 @@
 //! DELTARUNE 外置存档管理器 —— Tauri 应用入口与命令注册
 
-mod engine;
+pub mod engine;
 
 use std::path::PathBuf;
 

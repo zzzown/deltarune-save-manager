@@ -31,9 +31,14 @@ pub fn parse_filename(name: &str) -> Option<(u32, u32, Face)> {
 }
 
 fn count_lines(path: &Path) -> usize {
-    std::fs::read(path)
-        .map(|b| b.iter().filter(|&&c| c == b'\n').count())
-        .unwrap_or(0)
+    let Ok(b) = std::fs::read(path) else {
+        return 0;
+    };
+    if b.is_empty() {
+        return 0;
+    }
+    // 逻辑行数 = 换行符数量 + 1（若最后一行无换行符）
+    b.iter().filter(|&&c| c == b'\n').count() + usize::from(!b.ends_with(b"\n"))
 }
 
 /// 扫描存档目录，构建槽位×章节×面矩阵
@@ -121,7 +126,8 @@ fn build_profiles(files: &[SaveFile], dr_ini: &DrIni) -> Vec<Profile> {
                 .collect();
             metas.sort_by_key(|m| m.chapter);
 
-            let latest = metas.last();
+            // 取「有实际存档的最高章节」元数据（跳过 [EMPTY] 空槽），否则退回最高章节
+            let latest = metas.iter().rev().find(|m| !m.empty).or_else(|| metas.last());
             let name = latest.map(|m| m.name.clone()).unwrap_or_default();
             let level = latest.map(|m| m.level).unwrap_or(0.0);
             let time = latest.map(|m| m.time).unwrap_or(0.0);
