@@ -62,6 +62,12 @@ export default function App() {
     })();
   }, [refresh]);
 
+  useEffect(() => {
+    const handler = (e: MouseEvent) => e.preventDefault();
+    document.addEventListener("contextmenu", handler);
+    return () => document.removeEventListener("contextmenu", handler);
+  }, []);
+
   const selectedProfile: Profile | undefined = scan?.profiles.find(
     (p) => p.slot === selected?.slot && p.face === selected?.face
   );
@@ -253,6 +259,18 @@ export default function App() {
           <div className="section-title">
             <h2>存档档位</h2>
             <span className="hint">按「槽位 × 面」管理整列存档</span>
+          </div>
+
+          <div className="legend">
+            <span className="legend-item">
+              <span className="chip chip-done">✓</span> 已通关
+            </span>
+            <span className="legend-item">
+              <span className="chip chip-has">·</span> 有存档
+            </span>
+            <span className="legend-item">
+              <span className="chip chip-empty">–</span> 无存档
+            </span>
           </div>
 
           {scan && scan.profiles.length === 0 && (

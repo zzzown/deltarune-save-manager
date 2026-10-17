@@ -217,6 +217,29 @@ body {
   color: var(--text-dim);
 }
 
+/* 图例 */
+.legend {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: var(--text-dim);
+  align-items: center;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.tag-ura {
+  color: var(--on-accent);
+  background: var(--accent);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
 /* 标签 */
 .tag {
   display: inline-block;

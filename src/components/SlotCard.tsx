@@ -40,6 +40,11 @@ export function SlotCard({
 
       <div className="card-name">
         {profile.name || "（空档）"} · LV {profile.level}
+        {profile.uraBoss > 0 && (
+          <span className="tag tag-ura" title={`隐藏 Boss 状态：${profile.uraBoss}`}>
+            隐藏Boss
+          </span>
+        )}
       </div>
 
       <div className="chapter-row">

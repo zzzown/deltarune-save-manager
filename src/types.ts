@@ -48,6 +48,8 @@ export interface Profile {
   level: number;
   time: number;
   sideB: boolean;
+  /** 隐藏 Boss（裏）状态：0–3 */
+  uraBoss: number;
   /** 已通关章节（存在 completion file） */
   completedChapters: number[];
   health: Health;

@@ -71,6 +71,8 @@ pub struct Profile {
     pub level: f64,
     pub time: f64,
     pub side_b: bool,
+    /// 隐藏 Boss（裏）状态：0–3
+    pub ura_boss: f64,
     pub completed_chapters: Vec<u32>,
     pub health: Health,
     pub issues: Vec<String>,

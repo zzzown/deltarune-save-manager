@@ -59,6 +59,23 @@ fn count_lines(path: &Path) -> usize {
     b.iter().filter(|&&c| c == b'\n').count() + usize::from(!b.ends_with(b"\n"))
 }
 
+/// 读取 filech 文件的玩家名（第 1 行）、LV（第 13 行）、游戏时间（最后一行，帧）
+fn read_file_meta(save_dir: &Path, filename: &str) -> Option<(String, f64, f64)> {
+    let bytes = std::fs::read(save_dir.join(filename)).ok()?;
+    let text = String::from_utf8_lossy(&bytes);
+    let lines: Vec<&str> = text.lines().collect();
+    let name = lines.first()?.trim().to_string();
+    let lv = lines
+        .get(12)
+        .and_then(|s| s.trim().parse::<f64>().ok())
+        .unwrap_or(0.0);
+    let time = lines
+        .last()
+        .and_then(|s| s.trim().parse::<f64>().ok())
+        .unwrap_or(0.0);
+    Some((name, lv, time))
+}
+
 /// 扫描存档目录，构建槽位×章节×面矩阵
 pub fn scan(save_dir: &Path) -> Result<ScanResult, String> {
     let entries =
@@ -96,7 +113,7 @@ pub fn scan(save_dir: &Path) -> Result<ScanResult, String> {
         f_items: Default::default(),
     });
 
-    let profiles = build_profiles(&files, &dr_ini);
+    let profiles = build_profiles(save_dir, &files, &dr_ini);
 
     Ok(ScanResult {
         save_dir: save_dir.to_string_lossy().to_string(),
@@ -107,7 +124,7 @@ pub fn scan(save_dir: &Path) -> Result<ScanResult, String> {
     })
 }
 
-fn build_profiles(files: &[SaveFile], dr_ini: &DrIni) -> Vec<Profile> {
+fn build_profiles(save_dir: &Path, files: &[SaveFile], dr_ini: &DrIni) -> Vec<Profile> {
     let mut profiles = Vec::new();
 
     for slot in 0u32..3 {
@@ -146,9 +163,25 @@ fn build_profiles(files: &[SaveFile], dr_ini: &DrIni) -> Vec<Profile> {
 
             // 取「有实际存档的最高章节」元数据（跳过 [EMPTY] 空槽），否则退回最高章节
             let latest = metas.iter().rev().find(|m| !m.empty).or_else(|| metas.last());
-            let name = latest.map(|m| m.name.clone()).unwrap_or_default();
-            let level = latest.map(|m| m.level).unwrap_or(0.0);
-            let time = latest.map(|m| m.time).unwrap_or(0.0);
+            let mut name = latest.map(|m| m.name.clone()).unwrap_or_default();
+            let mut level = latest.map(|m| m.level).unwrap_or(0.0);
+            let mut time = latest.map(|m| m.time).unwrap_or(0.0);
+            let ura_boss = latest.map(|m| m.ura_boss).unwrap_or(0.0);
+
+            // 从 filech 读取权威的玩家名 / LV / 时长（最高章节），dr.ini 缺段或空时兜底
+            if let Some(f) = files
+                .iter()
+                .filter(|f| f.slot == slot && f.face == face)
+                .max_by_key(|f| f.chapter)
+            {
+                if let Some((n, lv, t)) = read_file_meta(save_dir, &f.filename) {
+                    if name.is_empty() || name == "[EMPTY]" {
+                        name = n;
+                    }
+                    level = lv;
+                    time = t;
+                }
+            }
 
             // B 面判定：任一章节 SideB 标志为 1，或本身就是 B 面文件
             let side_b = metas.iter().any(|m| m.side_b >= 1.0) || face == Face::B;
@@ -195,6 +228,7 @@ fn build_profiles(files: &[SaveFile], dr_ini: &DrIni) -> Vec<Profile> {
                 level,
                 time,
                 side_b,
+                ura_boss,
                 completed_chapters: completed,
                 health,
                 issues,
